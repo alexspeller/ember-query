@@ -8,13 +8,15 @@ A library enabling url query parameters to be used in ember applications. This f
 
 ## Status
 
-Highly experimental. Currently only supports history location, so if you're using hash location in ember this won't help you at all at the moment. Patches welcome.
+Highly experimental, but in use in an unreleased project. Currently only supports history location, so if you're using hash location in ember this won't help you at all at the moment. Patches welcome.
 
 ## Getting Started
 
 After ember.js in your html, include `ember-query.js` and [jquery-deparam](https://github.com/chrissrogers/jquery-deparam)
 
 Then, change your router to use query location
+
+**Important** - this will only work if you're currently using `location: 'history'`. If you are not, i.e. you are using the default which is `hash`, this will probably just cause everything to explode.
 
 ```javascript
 App.Router.reopen({
@@ -54,14 +56,13 @@ App.FooRoute = Em.Route.extend({
 App.BarRoute = Em.Route.extend({
   events: {
     buttonClicked: function() {
-      @transitionParams({ fooType: 'bar' });
+      this.transitionParams({ fooType: 'bar' });
     }
   }
 });
 
 // When these properties change, all serializeParams hooks in current
 // active state tree will be called to generate the new params for the querystring.
-
 App.FooController = Em.Controller.extend({
   observeParams: ['fooType', 'page']
 });
@@ -121,6 +122,6 @@ App.BarController = Em.Controller.extend({
 
 ```
 
-These helpers will transition appropirately and run the `deserializeParams` hook in all routes in the current state tree, which should apply the values to controllers appropriately.
+These helpers will transition appropriately and run the `deserializeParams` hook in all routes in the current state tree, which should apply the values to controllers appropriately.
 
 Right now, the implementation is pretty hacky but it seems to work OK and also seems to make sense conceptually. I'd be really interested in any feedback on the general idea of how it works, along with general bug reports and patches.
