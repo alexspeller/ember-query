@@ -14,26 +14,26 @@ Highly experimental, but in use in an unreleased project. Currently only support
 
 After ember.js in your html, include `ember-query.js` and [jquery-deparam](https://github.com/chrissrogers/jquery-deparam)
 
-Then, change your router to use query location
-
-**Important** - this will only work if you're currently using `location: 'history'`. If you are not, i.e. you are using the default which is `hash`, this will probably just cause everything to explode.
+Then, change your router to use query location:
 
 ```javascript
-App.Router.reopen({
+MyApp.Router.reopen({
   location: 'query'
 });
 ```
+**Important** - this will only work if you're currently using `location: 'history'`. If you are not, i.e. you are using the default which is `hash`, this will probably just cause everything to explode.
+
 
 There are new callbacks on each route, `serializeParams` and `deserializeParams`. The idea for serialize is to take the controller state and generate query params for the controller. Deserialize generates controller state from the query string. This is similar to how the `model` and `serialize` hooks currently work with the main difference being that query params are global rather than scoped to specific routes.
 
 ```javascript
-App.Router.map(function() {
+MyApp.Router.map(function() {
   this.resource('foo', function() {
     this.route('bar');
   });
 });
 
-App.FooRoute = Em.Route.extend({
+MyApp.FooRoute = Em.Route.extend({
   serializeParams: function(controller) {
     return {
       foo_type: controller.get('fooType'),
@@ -53,7 +53,7 @@ App.FooRoute = Em.Route.extend({
   }
 });
 
-App.BarRoute = Em.Route.extend({
+MyApp.BarRoute = Em.Route.extend({
   events: {
     buttonClicked: function() {
       this.transitionParams({ fooType: 'bar' });
@@ -63,7 +63,7 @@ App.BarRoute = Em.Route.extend({
 
 // When these properties change, all serializeParams hooks in current
 // active state tree will be called to generate the new params for the querystring.
-App.FooController = Em.Controller.extend({
+MyApp.FooController = Em.Controller.extend({
   observeParams: ['fooType', 'page']
 });
 ```
@@ -75,7 +75,7 @@ If you want something like a global filter param that applies across states, the
 When defining controllers, you need to provide a list of properties that affect params in some way, e.g:
 
 ```javascript
-App.FooController = Em.Controller.extend({
+MyApp.FooController = Em.Controller.extend({
   observeParams: ['propertyone', 'myList.@each']
 });
 ```
@@ -85,7 +85,7 @@ Note that these properties don't need to actually be the ones that are the param
 Finally, in controllers and routes there are some new helpers:
 
 ```javascript
-App.BarController = Em.Controller.extend({
+MyApp.BarController = Em.Controller.extend({
   // transition param_name to be 'param_value', adding an
   // entry in your history
   buttonClicked: function() {
