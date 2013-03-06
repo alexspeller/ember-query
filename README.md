@@ -4,7 +4,7 @@ A querystring library for Ember.js. Tested with 1.0.0-RC.1
 
 ## What is it?
 
-A library enabling url query parameters to be used in ember applications. This features is slated to be included in Ember.js 1.1, however I needed it now.
+A library enabling url query parameters to be used in ember applications. This feature is slated to be included in Ember.js 1.1, however I needed it now.
 
 ## Status
 
