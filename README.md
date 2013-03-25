@@ -4,7 +4,7 @@ A querystring library for Ember.js. Tested with 1.0.0-RC.1
 
 ## What is it?
 
-A library enabling url query parameters to be used in ember applications. This features is slated to be included in Ember.js 1.1, however I needed it now.
+A library enabling url query parameters to be used in ember applications. This feature is slated to be included in Ember.js 1.1, however I needed it now.
 
 ## Status
 
@@ -48,8 +48,16 @@ MyApp.FooRoute = Em.Route.extend({
 
   // setupController is only called when params change and this route
   // is the current child route (not a parent of the current state)
+  // Query params are passed as the third argument to this hook now
   setupController: function(controller, context, params) {
     controller.set('page', params.page);
+  },
+  
+  // query params are passed as the second argument to the model hook
+  // in case you need to use them to affect the model
+  model: function(params, queryParams) {
+    page = queryParams.page || 1;
+    return MyApp.Things.find({page: page});
   }
 });
 
