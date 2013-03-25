@@ -180,6 +180,7 @@
         name = args[0] = args[0] + '.index';
       }
       this.hijackUpdateUrlParams = args.pop();
+      this.replaceQueryParams(this.hijackUpdateUrlParams);
       Ember.assert("The route " + name + " was not found", this.router.hasRoute(name));
       (_ref = this.router).transitionTo.apply(_ref, args);
       return this.notifyPropertyChange('url');

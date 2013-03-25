@@ -148,6 +148,7 @@ Em.Router.reopen
       name = args[0] = args[0] + '.index'
 
     @hijackUpdateUrlParams = args.pop()
+    @replaceQueryParams @hijackUpdateUrlParams
 
     Ember.assert "The route #{name} was not found",
       @router.hasRoute(name)
