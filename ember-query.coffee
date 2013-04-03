@@ -194,11 +194,9 @@ Em.Route.reopen
   defaultController: -> @controllerFor @routeName
 
   deserialize: (params) ->
-    paramsWithQuery = {}
-    Em.merge paramsWithQuery, @queryParams()
-    Em.merge paramsWithQuery, params
-    model = @model paramsWithQuery
-    @deserializeParams @queryParams(), @defaultController()
+    query = @queryParams()
+    model = @model params, query
+    @deserializeParams query, @defaultController()
     @currentModel = model
 
   setup: (context) ->
