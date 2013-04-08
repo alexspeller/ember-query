@@ -239,12 +239,10 @@
       return this.controllerFor(this.routeName);
     },
     deserialize: function(params) {
-      var model, paramsWithQuery;
-      paramsWithQuery = {};
-      Em.merge(paramsWithQuery, this.queryParams());
-      Em.merge(paramsWithQuery, params);
-      model = this.model(paramsWithQuery);
-      this.deserializeParams(this.queryParams(), this.defaultController());
+      var model, query;
+      query = this.queryParams();
+      model = this.model(params, query);
+      this.deserializeParams(query, this.defaultController());
       return this.currentModel = model;
     },
     setup: function(context) {
