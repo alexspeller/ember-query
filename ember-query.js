@@ -274,4 +274,38 @@
     }
   });
 
+  Em.LinkView.reopen({
+    click: function(event) {
+      var params, route, router;
+      if (this.get('query') == null) {
+        return this._super(event);
+      }
+      if (!Em.ViewUtils.isSimpleClick(event)) {
+        return true;
+      }
+      event.preventDefault();
+      if (this.bubbles === false) {
+        event.stopPropagation();
+      }
+      router = this.get("router");
+      if (this.get("replace")) {
+        throw "replace not implemented with query params";
+      } else {
+        params = $.deparam(this.get('query'));
+        route = this.get('namedRoute');
+        console.log('click linkview');
+        return router.transitionToRouteWithParams(route, params);
+      }
+    },
+    href: (function() {
+      var path, router;
+      if (this.get('query') == null) {
+        return this._super();
+      }
+      router = this.get('router');
+      path = router.generate([this.get('namedRoute')]);
+      return "" + path + "?" + (this.get('query'));
+    }).property()
+  });
+
 }).call(this);

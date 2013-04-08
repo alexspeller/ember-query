@@ -220,3 +220,28 @@ Em.Route.reopen
     else
       @renderTemplate controller, context
 
+
+Em.LinkView.reopen
+  click: (event) ->
+    return @_super(event) unless @get('query')?
+    return true unless Em.ViewUtils.isSimpleClick(event)
+
+    event.preventDefault()
+    event.stopPropagation() if @bubbles is false
+
+    router = @get("router")
+
+    if @get("replace")
+      throw "replace not implemented with query params"
+    else
+      params = $.deparam @get('query')
+      route  = @get 'namedRoute'
+      console.log 'click linkview'
+      router.transitionToRouteWithParams route, params
+
+  href: (->
+    return @_super() unless @get('query')?
+    router = @get('router')
+    path = router.generate [@get('namedRoute')]
+    "#{path}?#{@get('query')}"
+  ).property()
