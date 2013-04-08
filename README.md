@@ -23,6 +23,7 @@ MyApp.Router.reopen({
 ```
 **Important** - this will only work if you're currently using `location: 'history'`. If you are not, i.e. you are using the default which is `hash`, this will probably just cause everything to explode.
 
+## Route Callbacks
 
 There are new callbacks on each route, `serializeParams` and `deserializeParams`. The idea for serialize is to take the controller state and generate query params for the controller. Deserialize generates controller state from the query string. This is similar to how the `model` and `serialize` hooks currently work with the main difference being that query params are global rather than scoped to specific routes.
 
@@ -60,25 +61,13 @@ MyApp.FooRoute = Em.Route.extend({
     return MyApp.Things.find({page: page});
   }
 });
-
-MyApp.BarRoute = Em.Route.extend({
-  events: {
-    buttonClicked: function() {
-      this.transitionParams({ fooType: 'bar' });
-    }
-  }
-});
-
-// When these properties change, all serializeParams hooks in current
-// active state tree will be called to generate the new params for the querystring.
-MyApp.FooController = Em.Controller.extend({
-  observeParams: ['fooType', 'page']
-});
 ```
 
 When serializing, the params from all routes are merged, e.g. if you are in state foo.bar.baz, all routes in that tree will have serialize called on them, and the result merged to generate the query string, with params from the child states taking precedence over params from the parent states with the same name.
 
 If you want something like a global filter param that applies across states, then add serializeParams / deserializeParams hooks to the common parant of those states.
+
+## Binding params to controller properties
 
 When defining controllers, you need to provide a list of properties that affect params in some way, e.g:
 
@@ -90,7 +79,9 @@ MyApp.FooController = Em.Controller.extend({
 
 Note that these properties don't need to actually be the ones that are the params, as changing of these properties just triggers the serialization process.
 
-Finally, in controllers and routes there are some new helpers:
+## Transitioning parameters
+
+In controllers and routes there are some new helpers:
 
 ```javascript
 MyApp.BarController = Em.Controller.extend({
@@ -131,5 +122,15 @@ MyApp.BarController = Em.Controller.extend({
 ```
 
 These helpers will transition appropriately and run the `deserializeParams` hook in all routes in the current state tree, which should apply the values to controllers appropriately.
+
+## Specifying query params in the {{linkTo}} helper
+
+
+
+```handlebars
+{{#linkTo new.route query="foo=bar&type[]=1&type[]=2"}}
+  Click me
+{{/linkTo}}
+```
 
 Right now, the implementation is pretty hacky but it seems to work OK and also seems to make sense conceptually. I'd be really interested in any feedback on the general idea of how it works, along with general bug reports and patches.
