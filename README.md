@@ -1,6 +1,6 @@
 # Ember Query
 
-A querystring library for Ember.js. Tested with 1.0.0-RC.1
+A querystring library for Ember.js. Tested with 1.0.0-rc.2
 
 ## What is it?
 
