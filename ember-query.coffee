@@ -13,6 +13,7 @@ Em.QueryLocation = Em.HistoryLocation.extend
     $.deparam @queryString(url)
 
   willChangeURL: (url) ->
+    @set 'fullURL', url
     @newURL = url
 
   alreadyHasParams: (params) ->
@@ -23,12 +24,17 @@ Em.QueryLocation = Em.HistoryLocation.extend
       .replace(/%5B/g, "[")
       .replace(/%5D/g, "]")
 
+  getURL: ->
+    @_super() + window.location.search
+
   setURL: (url) ->
     @_super(url)
+    @set 'fullURL', url
     @newURL = undefined
 
   replaceURL: (url) ->
     @_super(url)
+    @set 'fullURL', url
     @newURL = undefined
 
   replaceQueryParams: (params) ->
@@ -80,8 +86,6 @@ Em.Router.reopen
   # override some functions after they have been defined
   hijackUpdateUrlParams: null
   startRouting: ->
-    @_super()
-
     defaultUpdateURL = @router.updateURL
     @router.updateURL = (url) =>
       if @hijackUpdateUrlParams?
@@ -91,6 +95,23 @@ Em.Router.reopen
 
       defaultUpdateURL url
       @location.willChangeURL url
+
+    defaultHandleURL = @router.handleURL
+    @router.handleURL = (url) =>
+      console.log 'handleURL', url
+      @location.willChangeURL url
+      defaultHandleURL.call @router, url
+
+    defaultRecognize = @router.recognizer.recognize
+    @router.recognizer.recognize = (path) =>
+      if /\?/.test path
+        path = path.split("?")[0]
+      defaultRecognize.call @router.recognizer, path
+
+
+    @_super()
+
+  fullURLBinding: 'location.fullURL'
 
   didTransition: (infos) ->
     @_super(infos)
@@ -162,6 +183,9 @@ Em.Router.reopen
   serializeParams: ->
     return unless @isLoaded()
     @transitionAllParams @paramsFromRoutes()
+
+  queryStringFromRoutes: ->
+    @get('location').toQueryString @paramsFromRoutes()
 
   paramsFromRoutes: ->
     params = {}
@@ -236,7 +260,6 @@ Em.LinkView.reopen
     else
       params = $.deparam @get('query')
       route  = @get 'namedRoute'
-      console.log 'click linkview'
       router.transitionToRouteWithParams route, params
 
   href: (->

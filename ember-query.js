@@ -20,6 +20,7 @@
       return $.deparam(this.queryString(url));
     },
     willChangeURL: function(url) {
+      this.set('fullURL', url);
       return this.newURL = url;
     },
     alreadyHasParams: function(params) {
@@ -28,12 +29,17 @@
     toQueryString: function(params) {
       return $.param(params).replace(/%5B/g, "[").replace(/%5D/g, "]");
     },
+    getURL: function() {
+      return this._super() + window.location.search;
+    },
     setURL: function(url) {
       this._super(url);
+      this.set('fullURL', url);
       return this.newURL = void 0;
     },
     replaceURL: function(url) {
       this._super(url);
+      this.set('fullURL', url);
       return this.newURL = void 0;
     },
     replaceQueryParams: function(params) {
@@ -101,11 +107,10 @@
   Em.Router.reopen({
     hijackUpdateUrlParams: null,
     startRouting: function() {
-      var defaultUpdateURL,
+      var defaultHandleURL, defaultRecognize, defaultUpdateURL,
         _this = this;
-      this._super();
       defaultUpdateURL = this.router.updateURL;
-      return this.router.updateURL = function(url) {
+      this.router.updateURL = function(url) {
         var qs;
         if (_this.hijackUpdateUrlParams != null) {
           qs = _this.location.toQueryString(_this.hijackUpdateUrlParams);
@@ -117,7 +122,22 @@
         defaultUpdateURL(url);
         return _this.location.willChangeURL(url);
       };
+      defaultHandleURL = this.router.handleURL;
+      this.router.handleURL = function(url) {
+        console.log('handleURL', url);
+        _this.location.willChangeURL(url);
+        return defaultHandleURL.call(_this.router, url);
+      };
+      defaultRecognize = this.router.recognizer.recognize;
+      this.router.recognizer.recognize = function(path) {
+        if (/\?/.test(path)) {
+          path = path.split("?")[0];
+        }
+        return defaultRecognize.call(_this.router.recognizer, path);
+      };
+      return this._super();
     },
+    fullURLBinding: 'location.fullURL',
     didTransition: function(infos) {
       var _this = this;
       this._super(infos);
@@ -193,6 +213,9 @@
         return;
       }
       return this.transitionAllParams(this.paramsFromRoutes());
+    },
+    queryStringFromRoutes: function() {
+      return this.get('location').toQueryString(this.paramsFromRoutes());
     },
     paramsFromRoutes: function() {
       var params;
@@ -293,7 +316,6 @@
       } else {
         params = $.deparam(this.get('query'));
         route = this.get('namedRoute');
-        console.log('click linkview');
         return router.transitionToRouteWithParams(route, params);
       }
     },
