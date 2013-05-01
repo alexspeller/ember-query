@@ -2,7 +2,7 @@
 
 A querystring library for Ember.js. Tested with 1.0.0-rc.2
 
-If you are using 1.0.0-rc.3 or later, I am in the process of testing with this version. For now, see [https://github.com/alexspeller/ember-query/pull/2](this issue).
+If you are using 1.0.0-rc.3 or later, I am in the process of testing with this version. For now, see [this issue](https://github.com/alexspeller/ember-query/pull/2).
 
 ## What is it?
 
