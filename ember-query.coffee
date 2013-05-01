@@ -2,8 +2,8 @@ Em.QueryLocation = Em.HistoryLocation.extend
   initState: ->
     location = @get('location')
     state = location.pathname + location.search
-    @replaceState state
     @set('history', window.history)
+    @replaceState state
 
   queryString: (url) ->
     url.split("?")[1] or ""
