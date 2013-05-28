@@ -8,8 +8,8 @@
       var location, state;
       location = this.get('location');
       state = location.pathname + location.search;
-      this.replaceState(state);
-      return this.set('history', window.history);
+      this.set('history', window.history);
+      return this.replaceState(state);
     },
     queryString: function(url) {
       return url.split("?")[1] || "";
