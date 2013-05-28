@@ -2,6 +2,8 @@
 
 A querystring library for Ember.js. Tested with 1.0.0-rc.2
 
+If you are using 1.0.0-rc.3 or later, I am in the process of testing with this version. For now, see [this issue](https://github.com/alexspeller/ember-query/pull/2).
+
 ## What is it?
 
 A library enabling url query parameters to be used in ember applications. This feature is slated to be included in Ember.js 1.1, however I needed it now.
