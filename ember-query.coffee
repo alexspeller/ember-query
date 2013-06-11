@@ -98,7 +98,6 @@ Em.Router.reopen
 
     defaultHandleURL = @router.handleURL
     @router.handleURL = (url) =>
-      console.log 'handleURL', url
       @location.willChangeURL url
       defaultHandleURL.call @router, url
 
@@ -224,15 +223,58 @@ Em.Route.reopen
     @currentModel = model
 
   setup: (context) ->
-    @redirected = false
+    # Determine if this is the top-most transition.
+    # If so, we'll set up a data structure to track
+    # whether `transitionTo` or replaceWith gets called
+    # inside our `redirect` hook.
+    #
+    # This is necessary because we set a flag on the route
+    # inside transitionTo/replaceWith to determine afterwards
+    # if they were called, but `setup` can be called
+    # recursively and we need to disambiguate where in the
+    # call stack the redirect happened.
+
+    # Are we the first call to setup? If so, set up the
+    # redirect tracking data structure, and remember that
+    # we're the top-most so we can clean it up later.
+    isTop = undefined
+    unless @_redirected
+      isTop = true
+      @_redirected = []
+
+    # Set a flag on this route saying that we are interested in
+    # tracking redirects, and increment the depth count.
     @_checkingRedirect = true
-    @redirect context
+    depth = ++@_redirectDepth
+
+    # Check to see if context is set. This check preserves
+    # the correct arguments.length inside the `redirect` hook.
+    if context is `undefined`
+      @redirect()
+    else
+      @redirect context
+
+    # After the call to `redirect` returns, decrement the depth count.
+    @_redirectDepth--
     @_checkingRedirect = false
-    return false  if @redirected
+
+    # Save off the data structure so we can reset it on the route but
+    # still reference it later in this method.
+    redirected = @_redirected
+
+    # If this is the top `setup` call in the call stack, clear the
+    # redirect tracking data structure.
+    @_redirected = null  if isTop
+
+    # If we were redirected, there is nothing left for us to do.
+    # Returning false tells router.js not to continue calling setup
+    # on any children route handlers.
+    return false  if redirected[depth]
     controller = @controllerFor(@routeName, context)
-    if controller
-      @controller = controller
-      controller.set "model", context
+
+    # Assign the route's controller so that it can more easily be
+    # referenced in event handlers
+    @controller = controller
     if @setupControllers
       Ember.deprecate "Ember.Route.setupControllers is deprecated. Please use Ember.Route.setupController(controller, model) instead."
       @setupControllers controller, context, @queryParams()

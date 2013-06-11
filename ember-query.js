@@ -124,7 +124,6 @@
       };
       defaultHandleURL = this.router.handleURL;
       this.router.handleURL = function(url) {
-        console.log('handleURL', url);
         _this.location.willChangeURL(url);
         return defaultHandleURL.call(_this.router, url);
       };
@@ -269,19 +268,30 @@
       return this.currentModel = model;
     },
     setup: function(context) {
-      var controller;
-      this.redirected = false;
+      var controller, depth, isTop, redirected;
+      isTop = void 0;
+      if (!this._redirected) {
+        isTop = true;
+        this._redirected = [];
+      }
       this._checkingRedirect = true;
-      this.redirect(context);
+      depth = ++this._redirectDepth;
+      if (context === undefined) {
+        this.redirect();
+      } else {
+        this.redirect(context);
+      }
+      this._redirectDepth--;
       this._checkingRedirect = false;
-      if (this.redirected) {
+      redirected = this._redirected;
+      if (isTop) {
+        this._redirected = null;
+      }
+      if (redirected[depth]) {
         return false;
       }
       controller = this.controllerFor(this.routeName, context);
-      if (controller) {
-        this.controller = controller;
-        controller.set("model", context);
-      }
+      this.controller = controller;
       if (this.setupControllers) {
         Ember.deprecate("Ember.Route.setupControllers is deprecated. Please use Ember.Route.setupController(controller, model) instead.");
         this.setupControllers(controller, context, this.queryParams());
