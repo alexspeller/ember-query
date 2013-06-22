@@ -43,10 +43,16 @@
       return this.newURL = void 0;
     },
     replaceQueryParams: function(params) {
-      return this.doUpdateQueryParams(params, this.replaceURL.bind(this));
+      var _this = this;
+      return this.doUpdateQueryParams(params, function(url) {
+        return _this.replaceURL(url);
+      });
     },
     setQueryParams: function(params) {
-      return this.doUpdateQueryParams(params, this.setURL.bind(this));
+      var _this = this;
+      return this.doUpdateQueryParams(params, function(url) {
+        return _this.setURL(url);
+      });
     },
     doUpdateQueryParams: function(params, callback) {
       var newPath, query;

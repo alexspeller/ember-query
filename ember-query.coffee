@@ -38,10 +38,12 @@ Em.QueryLocation = Em.HistoryLocation.extend
     @newURL = undefined
 
   replaceQueryParams: (params) ->
-    @doUpdateQueryParams params, @replaceURL.bind(@)
+    @doUpdateQueryParams params, (url) =>
+      @replaceURL url
 
   setQueryParams: (params) ->
-    @doUpdateQueryParams params, @setURL.bind(@)
+    @doUpdateQueryParams params, (url) =>
+      @setURL url
 
   doUpdateQueryParams: (params, callback) ->
     newPath = @get('location.pathname')
