@@ -2,13 +2,15 @@
 
 A querystring library for Ember.js. Tested with 1.0.0-rc.5
 
+**RC6 is not supported yet. Support will be coming within the next few weeks, perhaps sooner. PRs welcome!**
+
 ## What is it?
 
 A library enabling url query parameters to be used in ember applications. This feature is slated to be included in Ember.js 1.1, however I needed it now.
 
 ## Status
 
-Highly experimental, but in use in an unreleased project. Currently only supports history location, so if you're using hash location in ember this won't help you at all at the moment. Patches welcome.
+Experimental, but in use in a number of apps. Currently only supports history location, so if you're using hash location in ember this won't help you at all at the moment. Patches welcome.
 
 ## Getting Started
 
