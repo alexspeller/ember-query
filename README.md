@@ -1,8 +1,6 @@
 # Ember Query
 
-A querystring library for Ember.js. Tested with 1.0.0-rc.5
-
-**RC6 is not supported yet. Support will be coming within the next few weeks, perhaps sooner. PRs welcome!**
+A querystring library for Ember.js. Tested with 1.0.0-rc.6.1
 
 ## What is it?
 
@@ -55,11 +53,11 @@ MyApp.FooRoute = Em.Route.extend({
   setupController: function(controller, context, params) {
     controller.set('page', params.page);
   },
-  
-  // query params are passed as the second argument to the model hook
+
+  // query params are accessible in the model hook if you need them:
   // in case you need to use them to affect the model
-  model: function(params, queryParams) {
-    page = queryParams.page || 1;
+  model: function(params) {
+    page = @queryParams().page || 1;
     return MyApp.Things.find({page: page});
   }
 });

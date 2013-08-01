@@ -27,7 +27,7 @@
       return this.toQueryString(this.queryHash()) === this.toQueryString(params);
     },
     toQueryString: function(params) {
-      return $.param(params).replace(/%5B/g, "[").replace(/%5D/g, "]");
+      return $.param(params).replace(/%5B/g, "[").replace(/%5D/g, "]").replace(/%2C/g, ",");
     },
     getURL: function() {
       return this._super() + window.location.search;
@@ -43,16 +43,10 @@
       return this.newURL = void 0;
     },
     replaceQueryParams: function(params) {
-      var _this = this;
-      return this.doUpdateQueryParams(params, function(url) {
-        return _this.replaceURL(url);
-      });
+      return this.doUpdateQueryParams(params, this.replaceURL.bind(this));
     },
     setQueryParams: function(params) {
-      var _this = this;
-      return this.doUpdateQueryParams(params, function(url) {
-        return _this.setURL(url);
-      });
+      return this.doUpdateQueryParams(params, this.setURL.bind(this));
     },
     doUpdateQueryParams: function(params, callback) {
       var newPath, query;
@@ -111,11 +105,18 @@
   });
 
   Em.Router.reopen({
+    init: function() {
+      var args;
+      args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      Ember.assert("You are using a version of ember that is too old for ember-query to work with.", this._setupRouter);
+      return this._super.apply(this, args);
+    },
     hijackUpdateUrlParams: null,
-    startRouting: function() {
+    _setupRouter: function(router, location) {
       var defaultHandleURL, defaultRecognize, defaultUpdateURL,
         _this = this;
-      defaultUpdateURL = this.router.updateURL;
+      this._super(router, location);
+      defaultUpdateURL = router.updateURL;
       this.router.updateURL = function(url) {
         var qs;
         if (_this.hijackUpdateUrlParams != null) {
@@ -131,26 +132,27 @@
       defaultHandleURL = this.router.handleURL;
       this.router.handleURL = function(url) {
         _this.location.willChangeURL(url);
-        return defaultHandleURL.call(_this.router, url);
+        return defaultHandleURL.call(_this.router, url).then(function() {
+          return _this.router.currentHandlerInfos.forEach(function(handlerInfo) {
+            return handlerInfo.handler.deserializeParams(_this.queryParams());
+          });
+        });
       };
       defaultRecognize = this.router.recognizer.recognize;
-      this.router.recognizer.recognize = function(path) {
+      return this.router.recognizer.recognize = function(path) {
         if (/\?/.test(path)) {
           path = path.split("?")[0];
         }
         return defaultRecognize.call(_this.router.recognizer, path);
       };
-      return this._super();
     },
     fullURLBinding: 'location.fullURL',
     didTransition: function(infos) {
       var _this = this;
       this._super(infos);
-      if (infos.someProperty('handler.redirected')) {
-        return;
-      }
       return Em.run.next(function() {
-        return _this.replaceQueryParams(_this.paramsFromRoutes());
+        _this.replaceQueryParams(_this.paramsFromRoutes());
+        return _this.notifyPropertyChange('url');
       });
     },
     currentRoute: function() {
@@ -207,8 +209,7 @@
       this.hijackUpdateUrlParams = args.pop();
       this.replaceQueryParams(this.hijackUpdateUrlParams);
       Ember.assert("The route " + name + " was not found", this.router.hasRoute(name));
-      (_ref = this.router).transitionTo.apply(_ref, args);
-      return this.notifyPropertyChange('url');
+      return (_ref = this.router).transitionTo.apply(_ref, args);
     },
     isLoaded: function() {
       return this.router.currentHandlerInfos != null;
@@ -244,59 +245,26 @@
       return this.get('router').queryParams();
     },
     transitionParams: function(newParams) {
-      if (this._checkingRedirect) {
-        this.redirected = true;
-      }
       return this.get('router').transitionParams(newParams);
     },
     transitionToRouteWithParams: function() {
       var args, _ref;
       args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      if (this._checkingRedirect) {
-        this.redirected = true;
-      }
       return (_ref = this.get('router')).transitionToRouteWithParams.apply(_ref, args);
     },
     replaceQueryParams: function(params) {
-      if (this._checkingRedirect) {
-        this.redirected = true;
-      }
       return this.get('router').replaceQueryParams(params);
     },
     defaultController: function() {
       return this.controllerFor(this.routeName);
     },
-    deserialize: function(params) {
-      var model, query;
-      query = this.queryParams();
-      model = this.model(params, query);
-      this.deserializeParams(query, this.defaultController());
-      return this.currentModel = model;
-    },
     setup: function(context) {
-      var controller, depth, isTop, redirected;
-      isTop = void 0;
-      if (!this._redirected) {
-        isTop = true;
-        this._redirected = [];
+      var controller, controllerName;
+      controllerName = this.controllerName || this.routeName;
+      controller = this.controllerFor(controllerName, true);
+      if (!controller) {
+        controller = this.generateController(controllerName, context);
       }
-      this._checkingRedirect = true;
-      depth = ++this._redirectDepth;
-      if (context === undefined) {
-        this.redirect();
-      } else {
-        this.redirect(context);
-      }
-      this._redirectDepth--;
-      this._checkingRedirect = false;
-      redirected = this._redirected;
-      if (isTop) {
-        this._redirected = null;
-      }
-      if (redirected[depth]) {
-        return false;
-      }
-      controller = this.controllerFor(this.routeName, context);
       this.controller = controller;
       if (this.setupControllers) {
         Ember.deprecate("Ember.Route.setupControllers is deprecated. Please use Ember.Route.setupController(controller, model) instead.");
@@ -304,6 +272,7 @@
       } else {
         this.setupController(controller, context, this.queryParams());
       }
+      this.deserializeParams(this.queryParams(), controller);
       if (this.renderTemplates) {
         Ember.deprecate("Ember.Route.renderTemplates is deprecated. Please use Ember.Route.renderTemplate(controller, model) instead.");
         return this.renderTemplates(context);
@@ -314,8 +283,8 @@
   });
 
   Em.LinkView.reopen({
-    click: function(event) {
-      var params, route, router;
+    _invoke: function(event) {
+      var params, route, routeArgs, router;
       if (this.get('query') == null) {
         return this._super(event);
       }
@@ -326,22 +295,31 @@
       if (this.bubbles === false) {
         event.stopPropagation();
       }
+      if (this.get('_isDisabled')) {
+        return false;
+      }
+      if (this.get("loading")) {
+        Ember.Logger.warn("This linkTo is in an inactive loading state because at least one of its parameters' presently has a null/undefined value, or the provided route name is invalid.");
+        return false;
+      }
       router = this.get("router");
+      routeArgs = this.get("routeArgs");
       if (this.get("replace")) {
         throw "replace not implemented with query params";
       } else {
         params = $.deparam(this.get('query'));
         route = this.get('namedRoute');
-        return router.transitionToRouteWithParams(route, params);
+        return router.transitionToRouteWithParams.apply(router, routeArgs.concat(params));
       }
     },
     href: (function() {
-      var path, router;
+      var path, routeArgs, router;
       if (this.get('query') == null) {
         return this._super();
       }
       router = this.get('router');
-      path = router.generate([this.get('namedRoute')]);
+      routeArgs = this.get('routeArgs');
+      path = routeArgs != null ? router.generate.apply(router, routeArgs) : get(this, 'loadingHref');
       return "" + path + "?" + (this.get('query'));
     }).property()
   });

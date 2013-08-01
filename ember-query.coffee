@@ -23,6 +23,7 @@ Em.QueryLocation = Em.HistoryLocation.extend
     $.param(params)
       .replace(/%5B/g, "[")
       .replace(/%5D/g, "]")
+      .replace(/%2C/g, ",")
 
   getURL: ->
     @_super() + window.location.search
@@ -38,12 +39,10 @@ Em.QueryLocation = Em.HistoryLocation.extend
     @newURL = undefined
 
   replaceQueryParams: (params) ->
-    @doUpdateQueryParams params, (url) =>
-      @replaceURL url
+    @doUpdateQueryParams params, @replaceURL.bind(@)
 
   setQueryParams: (params) ->
-    @doUpdateQueryParams params, (url) =>
-      @setURL url
+    @doUpdateQueryParams params, @setURL.bind(@)
 
   doUpdateQueryParams: (params, callback) ->
     newPath = @get('location.pathname')
@@ -86,9 +85,15 @@ Em.Router.reopen
   # object. This in fact applies to all of the overrides in
   # the startRouting method below, which just exist to
   # override some functions after they have been defined
+  init: (args...) ->
+    Ember.assert("You are using a version of ember that is too old for ember-query to work with.", @_setupRouter)
+    @_super(args...)
+
   hijackUpdateUrlParams: null
-  startRouting: ->
-    defaultUpdateURL = @router.updateURL
+  _setupRouter: (router, location) ->
+    @_super(router, location)
+
+    defaultUpdateURL = router.updateURL
     @router.updateURL = (url) =>
       if @hijackUpdateUrlParams?
         qs = @location.toQueryString(@hijackUpdateUrlParams)
@@ -101,7 +106,10 @@ Em.Router.reopen
     defaultHandleURL = @router.handleURL
     @router.handleURL = (url) =>
       @location.willChangeURL url
-      defaultHandleURL.call @router, url
+
+      defaultHandleURL.call(@router, url).then =>
+        @router.currentHandlerInfos.forEach (handlerInfo) =>
+          handlerInfo.handler.deserializeParams(@queryParams())
 
     defaultRecognize = @router.recognizer.recognize
     @router.recognizer.recognize = (path) =>
@@ -110,15 +118,13 @@ Em.Router.reopen
       defaultRecognize.call @router.recognizer, path
 
 
-    @_super()
-
   fullURLBinding: 'location.fullURL'
 
   didTransition: (infos) ->
     @_super(infos)
-    return if infos.someProperty('handler.redirected')
     Em.run.next =>
       @replaceQueryParams @paramsFromRoutes()
+      @notifyPropertyChange('url')
 
   currentRoute: ->
     @router.currentHandlerInfos.get('lastObject').handler
@@ -175,8 +181,7 @@ Em.Router.reopen
     Ember.assert "The route #{name} was not found",
       @router.hasRoute(name)
 
-    @router.transitionTo(args...)
-    @notifyPropertyChange 'url'
+    @router.transitionTo args...
 
   isLoaded: ->
     @router.currentHandlerInfos?
@@ -205,74 +210,20 @@ Em.Route.reopen
     @get('router').queryParams()
 
   transitionParams: (newParams) ->
-    @redirected = true if @_checkingRedirect
     @get('router').transitionParams(newParams)
 
   transitionToRouteWithParams: (args...) ->
-    @redirected = true if @_checkingRedirect
     @get('router').transitionToRouteWithParams args...
 
   replaceQueryParams: (params) ->
-    @redirected = true if @_checkingRedirect
     @get('router').replaceQueryParams params
 
   defaultController: -> @controllerFor @routeName
 
-  deserialize: (params) ->
-    query = @queryParams()
-    model = @model params, query
-    @deserializeParams query, @defaultController()
-    @currentModel = model
-
   setup: (context) ->
-    # Determine if this is the top-most transition.
-    # If so, we'll set up a data structure to track
-    # whether `transitionTo` or replaceWith gets called
-    # inside our `redirect` hook.
-    #
-    # This is necessary because we set a flag on the route
-    # inside transitionTo/replaceWith to determine afterwards
-    # if they were called, but `setup` can be called
-    # recursively and we need to disambiguate where in the
-    # call stack the redirect happened.
-
-    # Are we the first call to setup? If so, set up the
-    # redirect tracking data structure, and remember that
-    # we're the top-most so we can clean it up later.
-    isTop = undefined
-    unless @_redirected
-      isTop = true
-      @_redirected = []
-
-    # Set a flag on this route saying that we are interested in
-    # tracking redirects, and increment the depth count.
-    @_checkingRedirect = true
-    depth = ++@_redirectDepth
-
-    # Check to see if context is set. This check preserves
-    # the correct arguments.length inside the `redirect` hook.
-    if context is `undefined`
-      @redirect()
-    else
-      @redirect context
-
-    # After the call to `redirect` returns, decrement the depth count.
-    @_redirectDepth--
-    @_checkingRedirect = false
-
-    # Save off the data structure so we can reset it on the route but
-    # still reference it later in this method.
-    redirected = @_redirected
-
-    # If this is the top `setup` call in the call stack, clear the
-    # redirect tracking data structure.
-    @_redirected = null  if isTop
-
-    # If we were redirected, there is nothing left for us to do.
-    # Returning false tells router.js not to continue calling setup
-    # on any children route handlers.
-    return false  if redirected[depth]
-    controller = @controllerFor(@routeName, context)
+    controllerName = @controllerName or @routeName
+    controller = @controllerFor(controllerName, true)
+    controller = @generateController(controllerName, context)  unless controller
 
     # Assign the route's controller so that it can more easily be
     # referenced in event handlers
@@ -282,33 +233,46 @@ Em.Route.reopen
       @setupControllers controller, context, @queryParams()
     else
       @setupController controller, context, @queryParams()
+
+    @deserializeParams @queryParams(), controller
+
     if @renderTemplates
       Ember.deprecate "Ember.Route.renderTemplates is deprecated. Please use Ember.Route.renderTemplate(controller, model) instead."
       @renderTemplates context
     else
       @renderTemplate controller, context
 
-
 Em.LinkView.reopen
-  click: (event) ->
+  _invoke: (event) ->
     return @_super(event) unless @get('query')?
     return true unless Em.ViewUtils.isSimpleClick(event)
 
     event.preventDefault()
     event.stopPropagation() if @bubbles is false
 
-    router = @get("router")
+    return false if @get('_isDisabled')
+
+    if @get "loading"
+      Ember.Logger.warn "This linkTo is in an inactive loading state because at least one of its parameters' presently has a null/undefined value, or the provided route name is invalid."
+      return false
+
+    router      = @get "router"
+    routeArgs   = @get "routeArgs"
 
     if @get("replace")
       throw "replace not implemented with query params"
     else
       params = $.deparam @get('query')
       route  = @get 'namedRoute'
-      router.transitionToRouteWithParams route, params
+      router.transitionToRouteWithParams routeArgs.concat(params)...
 
   href: (->
     return @_super() unless @get('query')?
     router = @get('router')
-    path = router.generate [@get('namedRoute')]
+    routeArgs = @get('routeArgs')
+    path = if routeArgs?
+      router.generate.apply(router, routeArgs)
+    else
+      get(this, 'loadingHref');
     "#{path}?#{@get('query')}"
   ).property()
