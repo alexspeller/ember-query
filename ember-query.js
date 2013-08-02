@@ -321,7 +321,7 @@
       routeArgs = this.get('routeArgs');
       path = routeArgs != null ? router.generate.apply(router, routeArgs) : get(this, 'loadingHref');
       return "" + path + "?" + (this.get('query'));
-    }).property()
+    }).property('routeArgs')
   });
 
 }).call(this);
