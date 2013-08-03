@@ -275,4 +275,4 @@ Em.LinkView.reopen
     else
       get(this, 'loadingHref');
     "#{path}?#{@get('query')}"
-  ).property()
+  ).property('routeArgs')
