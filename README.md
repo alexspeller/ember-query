@@ -57,7 +57,7 @@ MyApp.FooRoute = Em.Route.extend({
   // query params are accessible in the model hook if you need them:
   // in case you need to use them to affect the model
   model: function(params) {
-    page = @queryParams().page || 1;
+    page = this.queryParams().page || 1;
     return MyApp.Things.find({page: page});
   }
 });
