@@ -2,6 +2,12 @@
 
 A querystring library for Ember.js. Tested with 1.0.0-rc.6.1
 
+## Note:
+
+On Sep 10th, a rewritten version of this library has been merged into ember-master. You will most likely want to use that one since it will be included in the official Ember 1.1 release. See more at https://github.com/emberjs/ember.js/pull/3182 including a quick overview on how to use it.
+
+Make sure you set `Ember.FEATURES['query-params'] = true;` before creating your application when using the ember-master build.
+
 ## What is it?
 
 A library enabling url query parameters to be used in ember applications. This feature is slated to be included in Ember.js 1.1, however I needed it now.
