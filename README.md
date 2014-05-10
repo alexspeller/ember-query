@@ -5,4 +5,4 @@ This library is deprecated and is no longer recommended for starting new project
 
 For legacy applications, the old instructions are available in README-old.md
 
-For new applications, query params support is built into ember. Please see [this guide](emberjs.com/guides/routing/query-params/) to get started
+For new applications, query params support is built into ember. Please see [this guide](http://emberjs.com/guides/routing/query-params/) to get started
